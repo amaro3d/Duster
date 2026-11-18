@@ -8,6 +8,7 @@
 :root{--ink:#f4fbff;--soft:rgba(244,251,255,.72);--acc:#7ff0d2;--bg:#04121c}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:#04121c;color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
+html,body,canvas{touch-action:none}
 canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
 body:not(.playing) #hud{display:none}
 #hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 1px 8px rgba(0,20,40,.55)}
@@ -47,6 +48,19 @@ h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(4
 .keys kbd{display:inline-block;min-width:22px;padding:1px 7px;margin:0 2px;border:1px solid rgba(255,255,255,.4);border-bottom-width:2px;border-radius:5px;font:600 11px ui-monospace,monospace}
 #pause{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:4;background:rgba(2,10,18,.5);font-size:14px;letter-spacing:.3em;text-transform:uppercase;cursor:pointer}
 #pause.on{display:flex}
+#touch{display:none;position:fixed;inset:0;pointer-events:none;z-index:3}
+body.touch.playing #touch{display:block}
+#stick{position:absolute;left:max(28px,env(safe-area-inset-left,0px));bottom:max(28px,env(safe-area-inset-bottom,0px));width:150px;height:150px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.07);pointer-events:auto;touch-action:none}
+#knob{position:absolute;left:50%;top:50%;width:62px;height:62px;margin:-31px;border-radius:50%;background:rgba(127,240,210,.55);border:2px solid rgba(255,255,255,.6)}
+#tbtns{position:absolute;right:max(24px,env(safe-area-inset-right,0px));bottom:max(24px,env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:auto auto;gap:12px;align-items:end;justify-items:end}
+#tbtns button{all:unset;pointer-events:auto;touch-action:none;display:flex;align-items:center;justify-content:center;border-radius:50%;width:78px;height:78px;font-size:10px;font-weight:700;letter-spacing:.12em;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.4);color:#fff;text-align:center}
+#tbtns button.on{background:rgba(127,240,210,.5)}
+#bt-jump{width:104px!important;height:104px!important;grid-column:2;font-size:12px!important;background:rgba(127,240,210,.28)!important}
+body.touch #progress{bottom:6px}
+body.touch #hint{bottom:150px}
+body.touch #tl{top:8px}body.touch #tr{top:8px}
+body.touch #speed{font-size:32px}body.touch #score{font-size:22px}
+body.touch .keys{display:none}
 @media (max-width:720px){#speed{font-size:34px}#score{font-size:22px}.card{width:46%}}
 </style>
 </head>
@@ -73,6 +87,15 @@ h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(4
     <span><kbd>Shift</kbd> agachar (joelhos) · <kbd>Q</kbd> pegar a borda no ar</span>
     <span><kbd>A</kbd><kbd>D</kbd> no ar: girar · <kbd>Alt</kbd>+mouse: olhar em volta</span>
     <span><kbd>N</kbd> próximo mar · <kbd>R</kbd> nova onda · <kbd>B</kbd> modo cinema</span>
+  </div>
+</div>
+<div id="touch">
+  <div id="stick"><div id="knob"></div></div>
+  <div id="tbtns">
+    <button id="bt-stall" data-k="KeyS">SEGURAR</button>
+    <button id="bt-tuck" data-k="ShiftLeft">AGACHAR</button>
+    <button id="bt-pump" data-k="KeyW">BOMBEAR</button>
+    <button id="bt-jump" data-k="Space">PULAR</button>
   </div>
 </div>
 <!--BUNDLE-->

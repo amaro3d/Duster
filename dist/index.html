@@ -8,6 +8,7 @@
 :root{--ink:#f4fbff;--soft:rgba(244,251,255,.72);--acc:#7ff0d2;--bg:#04121c}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;background:#04121c;color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
+html,body,canvas{touch-action:none}
 canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
 body:not(.playing) #hud{display:none}
 #hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 1px 8px rgba(0,20,40,.55)}
@@ -47,6 +48,19 @@ h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(4
 .keys kbd{display:inline-block;min-width:22px;padding:1px 7px;margin:0 2px;border:1px solid rgba(255,255,255,.4);border-bottom-width:2px;border-radius:5px;font:600 11px ui-monospace,monospace}
 #pause{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:4;background:rgba(2,10,18,.5);font-size:14px;letter-spacing:.3em;text-transform:uppercase;cursor:pointer}
 #pause.on{display:flex}
+#touch{display:none;position:fixed;inset:0;pointer-events:none;z-index:3}
+body.touch.playing #touch{display:block}
+#stick{position:absolute;left:max(28px,env(safe-area-inset-left,0px));bottom:max(28px,env(safe-area-inset-bottom,0px));width:150px;height:150px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.07);pointer-events:auto;touch-action:none}
+#knob{position:absolute;left:50%;top:50%;width:62px;height:62px;margin:-31px;border-radius:50%;background:rgba(127,240,210,.55);border:2px solid rgba(255,255,255,.6)}
+#tbtns{position:absolute;right:max(24px,env(safe-area-inset-right,0px));bottom:max(24px,env(safe-area-inset-bottom,0px));display:grid;grid-template-columns:auto auto;gap:12px;align-items:end;justify-items:end}
+#tbtns button{all:unset;pointer-events:auto;touch-action:none;display:flex;align-items:center;justify-content:center;border-radius:50%;width:78px;height:78px;font-size:10px;font-weight:700;letter-spacing:.12em;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.4);color:#fff;text-align:center}
+#tbtns button.on{background:rgba(127,240,210,.5)}
+#bt-jump{width:104px!important;height:104px!important;grid-column:2;font-size:12px!important;background:rgba(127,240,210,.28)!important}
+body.touch #progress{bottom:6px}
+body.touch #hint{bottom:150px}
+body.touch #tl{top:8px}body.touch #tr{top:8px}
+body.touch #speed{font-size:32px}body.touch #score{font-size:22px}
+body.touch .keys{display:none}
 @media (max-width:720px){#speed{font-size:34px}#score{font-size:22px}.card{width:46%}}
 </style>
 </head>
@@ -73,6 +87,15 @@ h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(4
     <span><kbd>Shift</kbd> agachar (joelhos) · <kbd>Q</kbd> pegar a borda no ar</span>
     <span><kbd>A</kbd><kbd>D</kbd> no ar: girar · <kbd>Alt</kbd>+mouse: olhar em volta</span>
     <span><kbd>N</kbd> próximo mar · <kbd>R</kbd> nova onda · <kbd>B</kbd> modo cinema</span>
+  </div>
+</div>
+<div id="touch">
+  <div id="stick"><div id="knob"></div></div>
+  <div id="tbtns">
+    <button id="bt-stall" data-k="KeyS">SEGURAR</button>
+    <button id="bt-tuck" data-k="ShiftLeft">AGACHAR</button>
+    <button id="bt-pump" data-k="KeyW">BOMBEAR</button>
+    <button id="bt-jump" data-k="Space">PULAR</button>
   </div>
 </div>
 <script>(() => {
@@ -23866,7 +23889,9 @@ void main(){
     constructor(canvas2, hud2) {
       this.hud = hud2;
       this.renderer = new WebGLRenderer({ canvas: canvas2, antialias: true, powerPreference: "high-performance" });
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+      this.isTouch = matchMedia("(pointer: coarse)").matches || "ontouchstart" in window;
+      this.pr = this.isTouch ? Math.min(window.devicePixelRatio || 1, 1) * 0.85 : Math.min(window.devicePixelRatio || 1, 1.75);
+      this.renderer.setPixelRatio(this.pr);
       this.renderer.toneMapping = ACESFilmicToneMapping;
       this.renderer.outputColorSpace = SRGBColorSpace;
       this.scene = new Scene();
@@ -23882,7 +23907,7 @@ void main(){
       this.bubbles = new Particles(300, "#bfefff", 0.1);
       this.trail = new Particles(900, "#ffffff");
       this.scene.add(this.spray.points, this.mist.points, this.trail.points, this.bubbles.points);
-      this.input = { left: false, right: false, stall: false, tuck: false, grab: false, pump: false, jump: false, free: false };
+      this.input = { axis: 0, left: false, right: false, stall: false, tuck: false, grab: false, pump: false, jump: false, free: false };
       this.mouseDX = 0;
       this.mouseDY = 0;
       this.envIndex = 0;
@@ -24110,6 +24135,7 @@ void main(){
       const bi = this.bot ? this.botInput(this.S) : null;
       let steer = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
       let stall = inp.stall, tuck = inp.tuck, pump = inp.pump, jump = inp.jump;
+      if (inp.axis) steer = clamp2(steer + inp.axis, -1, 1);
       if (bi) {
         steer = bi.steer;
         stall = bi.stall;
@@ -24658,6 +24684,7 @@ void main(){
   window.__game = game;
   hud.env(game.env);
   var playing = false;
+  if (game.isTouch) document.body.classList.add("touch");
   var menu = document.getElementById("menu");
   var pause = document.getElementById("pause");
   buildMenu((i) => {
@@ -24676,9 +24703,23 @@ void main(){
     game.score = 0;
     game.beginPaddle();
     hud.env(game.env);
-    try {
-      canvas.requestPointerLock && canvas.requestPointerLock();
-    } catch (e) {
+    if (game.isTouch) {
+      try {
+        const r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+        if (r && r.catch) r.catch(() => {
+        });
+      } catch (e) {
+      }
+      try {
+        screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape").catch(() => {
+        });
+      } catch (e) {
+      }
+    } else {
+      try {
+        canvas.requestPointerLock && canvas.requestPointerLock();
+      } catch (e) {
+      }
     }
   }
   document.getElementById("play").onclick = start;
@@ -24692,7 +24733,7 @@ void main(){
     game.audio.resume();
   };
   document.addEventListener("pointerlockchange", () => {
-    if (!playing) return;
+    if (!playing || game.isTouch) return;
     if (document.pointerLockElement !== canvas) {
       game.locked = false;
       game.paused = true;
@@ -24757,6 +24798,50 @@ void main(){
       game.render();
     }
   };
+  var stick = document.getElementById("stick");
+  var knob = document.getElementById("knob");
+  var stickId = null;
+  function setAxis(e) {
+    const r = stick.getBoundingClientRect(), cx = r.left + r.width / 2;
+    let v = (e.clientX - cx) / (r.width / 2);
+    v = Math.max(-1, Math.min(1, v));
+    game.input.axis = Math.abs(v) < 0.12 ? 0 : v;
+    knob.style.transform = `translate(${v * 44}px,0)`;
+  }
+  stick.addEventListener("pointerdown", (e) => {
+    stickId = e.pointerId;
+    stick.setPointerCapture(e.pointerId);
+    setAxis(e);
+    e.preventDefault();
+  });
+  stick.addEventListener("pointermove", (e) => {
+    if (e.pointerId === stickId) setAxis(e);
+  });
+  var endStick = (e) => {
+    if (e.pointerId === stickId) {
+      stickId = null;
+      game.input.axis = 0;
+      knob.style.transform = "";
+    }
+  };
+  stick.addEventListener("pointerup", endStick);
+  stick.addEventListener("pointercancel", endStick);
+  document.querySelectorAll("#tbtns button").forEach((b) => {
+    const k = b.dataset.k;
+    b.addEventListener("pointerdown", (e) => {
+      b.setPointerCapture(e.pointerId);
+      b.classList.add("on");
+      game.keyDown(k);
+      e.preventDefault();
+    });
+    const up = () => {
+      b.classList.remove("on");
+      game.keyUp(k);
+    };
+    b.addEventListener("pointerup", up);
+    b.addEventListener("pointercancel", up);
+  });
+  document.addEventListener("contextmenu", (e) => e.preventDefault());
 })();
 /*! Bundled license information:
 

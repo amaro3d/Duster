@@ -16,7 +16,9 @@ export class Game {
   constructor(canvas, hud) {
     this.hud = hud;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    this.isTouch = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+    this.pr = this.isTouch ? Math.min(window.devicePixelRatio || 1, 1.0) * 0.85 : Math.min(window.devicePixelRatio || 1, 1.75);
+    this.renderer.setPixelRatio(this.pr);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.scene = new THREE.Scene();
@@ -28,7 +30,7 @@ export class Game {
     this.spray = new Particles(2600, '#ffffff'); this.mist = new Particles(2200, '#f2fbff'); this.bubbles = new Particles(300, '#bfefff', 0.1);
     this.trail = new Particles(900, '#ffffff');
     this.scene.add(this.spray.points, this.mist.points, this.trail.points, this.bubbles.points);
-    this.input = { left: false, right: false, stall: false, tuck: false, grab: false, pump: false, jump: false, free: false };
+    this.input = { axis: 0, left: false, right: false, stall: false, tuck: false, grab: false, pump: false, jump: false, free: false };
     this.mouseDX = 0; this.mouseDY = 0;
     this.envIndex = 0; this.mode = 'menu'; this.t = 0; this.best = 0; this.score = 0;
     this.bot = false; this.camMode = 'fps'; this.locked = false; this.mousePos = undefined; this.sp = {}; this.S = {}; this.paused = false;
@@ -180,6 +182,7 @@ export class Game {
     const bi = this.bot ? this.botInput(this.S) : null;
     let steer = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
     let stall = inp.stall, tuck = inp.tuck, pump = inp.pump, jump = inp.jump;
+    if (inp.axis) steer = clamp(steer + inp.axis, -1, 1);
     if (bi) { steer = bi.steer; stall = bi.stall; tuck = bi.tuck; if (bi.pump) pump = true; if (bi.jump) pump = true; }
     let mdx = inp.free ? 0 : this.mouseDX; this.mouseDX = 0;
     if (this.mousePos !== undefined && !this.locked) { const m = this.mousePos - 0.5; if (Math.abs(m) > 0.06) mdx += Math.sign(m) * (Math.abs(m) - 0.06) * 260 * dt * 3.2; }
