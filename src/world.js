@@ -327,6 +327,7 @@ export function createWorld(env, scene) {
   seabed.material.uniforms.uFlow = uniforms.uFlow;
   const sea = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000, 1, 1).rotateX(-Math.PI / 2), makeWaterMaterial(uniforms, true));
   sea.position.y = -0.07; sea.renderOrder = 1; sea.frustumCulled = false;
+  sea.material.polygonOffset = true; sea.material.polygonOffsetFactor = 4; sea.material.polygonOffsetUnits = 8;
   root.add(sky, land, seabed, sea);
   const sun = new THREE.DirectionalLight(C(env.sunColor), env.sunI * 2.4);
   sun.position.set(...env.sunDir).multiplyScalar(500);

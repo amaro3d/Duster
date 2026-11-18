@@ -35,7 +35,7 @@ void main(){
 const waterFrag = /* glsl */ `
 uniform vec3 uCam; uniform float uTime; uniform vec2 uFlow;
 uniform vec3 uSunDir, uSunCol, uSkyTop, uSkyMid, uSkyHor, uDeep, uShallow, uSSS, uFoamCol, uFog;
-uniform float uFogD, uSunI, uNight, uIsSea, uBeachX, uUnder, uStars;
+uniform float uFogD, uSunI, uNight, uIsSea, uBeachX, uUnder, uStars, uDebug;
 varying vec3 vWPos; varying vec3 vN; varying float vThick; varying float vFoam; varying float vTip;
 ${GLSL_COMMON}
 vec3 skyCol(vec3 d){
@@ -132,6 +132,10 @@ void main(){
   vec3 fogc = uFog;
   if(uUnder>0.5){ fogF = 1.-exp(-dist*0.035); fogc = uDeep*0.9+uShallow*0.25; }
   col = mix(col, fogc, fogF);
+  if(uDebug>0.5 && uDebug<1.5) col = vec3(vThick/6.);
+  if(uDebug>1.5 && uDebug<2.5) col = N*0.5+0.5;
+  if(uDebug>2.5 && uDebug<3.5) col = vec3(vFoam, max(vTip,0.), back?1.:0.);
+  if(uDebug>3.5) col = vec3(alpha);
   gl_FragColor = vec4(col, alpha);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -146,7 +150,7 @@ export function makeUniforms(env) {
     uDeep: { value: C(env.deep) }, uShallow: { value: C(env.shallow) }, uSSS: { value: C(env.sss) },
     uFoamCol: { value: C(env.foam) }, uFog: { value: C(env.fog) },
     uFogD: { value: env.fogD }, uSunI: { value: env.sunI }, uNight: { value: env.night || 0 },
-    uIsSea: { value: 0 }, uBeachX: { value: env.land.beachX }, uUnder: { value: 0 }, uStars: { value: env.stars || 0 },
+    uIsSea: { value: 0 }, uBeachX: { value: env.land.beachX }, uUnder: { value: 0 }, uStars: { value: env.stars || 0 }, uDebug: { value: 0 },
   };
 }
 

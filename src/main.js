@@ -14,7 +14,7 @@ game.bot = true; // câmera de cinema no menu
 
 function start() {
   game.audio.init(); game.audio.resume();
-  menu.classList.add('hide'); playing = true;
+  menu.classList.add('hide'); playing = true; document.body.classList.add('playing');
   game.bot = false; game.score = 0; game.beginPaddle();
   hud.env(game.env);
   try { canvas.requestPointerLock && canvas.requestPointerLock(); } catch (e) {}
@@ -23,8 +23,8 @@ document.getElementById('play').onclick = start;
 pause.onclick = () => { try { canvas.requestPointerLock(); } catch (e) {} game.paused = false; pause.classList.remove('on'); game.audio.resume(); };
 document.addEventListener('pointerlockchange', () => {
   if (!playing) return;
-  if (document.pointerLockElement !== canvas) { game.paused = true; pause.classList.add('on'); }
-  else { game.paused = false; pause.classList.remove('on'); }
+  if (document.pointerLockElement !== canvas) { game.locked = false; game.paused = true; pause.classList.add('on'); }
+  else { game.locked = true; game.paused = false; pause.classList.remove('on'); }
 });
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault();
@@ -33,7 +33,11 @@ window.addEventListener('keydown', (e) => {
   game.keyDown(e.code);
 });
 window.addEventListener('keyup', (e) => game.keyUp(e.code));
-window.addEventListener('mousemove', (e) => { if (document.pointerLockElement === canvas) { game.mouseDX += e.movementX; game.mouseDY += e.movementY; } });
+window.addEventListener('mousemove', (e) => {
+  if (document.pointerLockElement === canvas) { game.locked = true; game.mouseDX += e.movementX; game.mouseDY += e.movementY; }
+  else { game.locked = false; if (playing && !game.bot) game.mousePos = e.clientX / window.innerWidth; }
+});
+document.addEventListener('pointerlockerror', () => { game.locked = false; game.paused = false; pause.classList.remove('on'); });
 window.addEventListener('resize', () => game.resize());
 canvas.addEventListener('mousedown', () => { if (playing && document.pointerLockElement !== canvas) { try { canvas.requestPointerLock(); } catch (e) {} } });
 

@@ -20,7 +20,7 @@ export function sectionAt(z, env) {
 export function sliceParams(z, zp, env, o = {}) {
   const w = sectionAt(z, env);
   const zeta = zp - z; // >0: atrás do peel (já quebrou)
-  const kmax = lerp(0.5, 1.0, w.hollow);
+  const kmax = lerp(0.1, 1.0, smoothstep(0.1, 0.8, w.hollow));
   const pitch = smoothstep(0, env.pitchLen, zeta);
   let k = kmax * pitch;
   const ahead = smoothstep(0, 1, clamp(-zeta / 80, 0, 1));

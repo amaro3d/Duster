@@ -20,7 +20,7 @@ export class Game {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(80, 16 / 9, 0.08, 9000);
+    this.camera = new THREE.PerspectiveCamera(80, 16 / 9, 0.12, 9000);
     this.scene.add(this.camera);
     this.audio = new GameAudio();
     this.rig = new Rig();
@@ -31,7 +31,7 @@ export class Game {
     this.input = { left: false, right: false, stall: false, tuck: false, grab: false, pump: false, jump: false, free: false };
     this.mouseDX = 0; this.mouseDY = 0;
     this.envIndex = 0; this.mode = 'menu'; this.t = 0; this.best = 0; this.score = 0;
-    this.bot = false; this.camMode = 'fps'; this.sp = {}; this.S = {}; this.paused = false;
+    this.bot = false; this.camMode = 'fps'; this.locked = false; this.mousePos = undefined; this.sp = {}; this.S = {}; this.paused = false;
     this.lookYaw = 0; this.lookPitch = 0;
     this.camQ = new THREE.Quaternion(); this.camP = new THREE.Vector3(); this.camInit = false;
     this.setEnv(0);
@@ -69,7 +69,7 @@ export class Game {
     this.zp = this.z + 7 - cp * (27 / 6 + 0.9);
     this.driftF = 1; this.sceneryX = 0; this.waveScore = 0; this.lostT = 0; this.wipeMsg = '';
     this.sThetaPrev = 0; this.lookYaw = 0; this.lookPitch = 0; this.camInit = false; this.under = false;
-    this.fade = 0; this.strokePh = 0; this.waveDone = false; this.comboT = 0; this.pumpPulse = 0; this.shake = 0; this.omega = 0; this.inTube = false; this.tubeAnn = false; this.stall = false; this.tuck = false; this.airGrab = 0; this.phi = 0;
+    this.fade = 0; this.strokePh = 0; this.waveDone = false; this.comboT = 0; this.lastJump = -9; this.pumpPulse = 0; this.shake = 0; this.omega = 0; this.inTube = false; this.tubeAnn = false; this.stall = false; this.tuck = false; this.airGrab = 0; this.phi = 0;
     this.popup('Reme! Espaço quando a onda levantar', 4);
   }
 
@@ -85,7 +85,8 @@ export class Game {
     const S = this.S, sp = this.speed, th = this.theta;
     const P = surfacePoint(S, this.a, {});
     const nx = P.nx, ny = P.ny;
-    this.vel = new THREE.Vector3(sp * Math.sin(th) * P.tx + (jump ? 3.2 : 1.2) * nx, sp * Math.sin(th) * P.ty + (jump ? 3.2 : 1.2) * ny, sp * Math.cos(th));
+    const kick = jump ? 5.6 : 1.2;
+    this.vel = new THREE.Vector3(sp * Math.sin(th) * P.tx + kick * nx, sp * Math.sin(th) * P.ty + kick * ny, sp * Math.cos(th));
     this.pos3 = new THREE.Vector3(P.x + nx * 0.2, P.y + ny * 0.2, this.z);
     this.mode = 'air'; this.airT = 0; this.airYaw = 0; this.airSpinRate = 0; this.airSpinTot = 0; this.airGrab = 0; this.airMaxY = this.pos3.y;
     this.popup('AR!', 0.8);
@@ -135,7 +136,7 @@ export class Game {
     else if (code === 'KeyS' || code === 'ArrowDown' || code === 'ControlLeft') i.stall = true;
     else if (code === 'ShiftLeft' || code === 'ShiftRight') i.tuck = true;
     else if (code === 'KeyQ' || code === 'KeyE') i.grab = true;
-    else if (code === 'Space') { if (!i.jump) i.pump = true; i.jump = true; }
+    else if (code === 'Space') { if (!i.jump) i.pump = true; i.jump = true; i.jumpPressed = true; }
     else if (code === 'KeyW' || code === 'ArrowUp') { i.pump = true; }
     else if (code === 'AltLeft') i.free = true;
     else if (code === 'KeyB') { this.bot = !this.bot; this.popup(this.bot ? 'Piloto automático (modo cinema)' : 'Controle manual', 1.8); }
@@ -180,7 +181,8 @@ export class Game {
     let steer = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
     let stall = inp.stall, tuck = inp.tuck, pump = inp.pump, jump = inp.jump;
     if (bi) { steer = bi.steer; stall = bi.stall; tuck = bi.tuck; if (bi.pump) pump = true; if (bi.jump) pump = true; }
-    const mdx = inp.free ? 0 : this.mouseDX; this.mouseDX = 0;
+    let mdx = inp.free ? 0 : this.mouseDX; this.mouseDX = 0;
+    if (this.mousePos !== undefined && !this.locked) { const m = this.mousePos - 0.5; if (Math.abs(m) > 0.06) mdx += Math.sign(m) * (Math.abs(m) - 0.06) * 260 * dt * 3.2; }
     const mdy = this.mouseDY; this.mouseDY = 0;
     if (inp.free) { this.lookYaw = clamp(this.lookYaw - 0, -1.8, 1.8); }
     // peel avança
@@ -251,8 +253,11 @@ export class Game {
     this.omega = dTh / dt;
     // assistência na primeira curva (bottom turn)
     const assist = Math.max(0, 1 - this.rideT / 1.8);
-    if (assist > 0 && Math.abs(steer) < 0.1 && Math.abs(mdx) < 0.5) th += (-0.12 - th) * 1.6 * assist * dt;
-    if (Math.abs(steer) < 0.1 && Math.abs(mdx) < 0.5 && this.rideT > 1.8) th += (-0.04 - th) * 0.5 * dt; // trim automático
+    if (assist > 0 && Math.abs(steer) < 0.1 && Math.abs(mdx) < 0.5) th += (0.05 - th) * 2.6 * assist * dt;
+    if (Math.abs(steer) < 0.1 && Math.abs(mdx) < 0.5 && this.rideT > 0.9) {
+      const tgt = -0.04 + clamp((1.4 - this.a) * 0.3, 0, 0.6); // trim automático: volta para a face
+      th += (tgt - th) * (this.a < 0.5 ? 1.6 : 0.5) * dt;
+    }
     th = clamp(th, -2.6, 2.6);
     // empuxo da onda (bolso)
     const zc = 15, hw = 28;
@@ -310,7 +315,7 @@ export class Game {
     // fim da onda
     if (this.z > env.zEnd + 10) { this.endRide('FIM DA ONDA'); this.waveScore += 400; return; }
     // empurrãozinho de pulo em cima do lábio
-    if (jump && phi > rad(70) && sp > 7 && Math.sin(th) > 0.05) { this.launch(true); return; }
+    if (jump && phi > rad(38) && phi < rad(100) && sp > 6.5 && this.t - this.lastJump > 0.6) { this.lastJump = this.t; this.launch(true); return; }
   }
 
   updateAir(dt, steer, mdx, jump) {
@@ -334,7 +339,7 @@ export class Game {
       const phiP = Math.atan2(-x, -dy);
       if (r >= S.Rf - 0.02 && phiP > 0 && phiP < S.phi + 0.05) {
         landed = true; la = S.Rf * phiP;
-        if (phiP > rad(105)) lip = true;
+        if (phiP > rad(112)) lip = true;
       } else if (r >= S.Rf && phiP >= S.phi + 0.05) {
         const yBack = S.H * smoothstep(-S.Lb, -0.25 * S.Rf, x);
         if (y < yBack) { this.endRide('Por cima da onda'); this.score += 0; return; }
