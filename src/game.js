@@ -71,14 +71,18 @@ export class Game {
     this.zp = this.z + 7 - cp * (27 / 6 + 0.9);
     this.driftF = 1; this.sceneryX = 0; this.waveScore = 0; this.lostT = 0; this.wipeMsg = '';
     this.sThetaPrev = 0; this.lookYaw = 0; this.lookPitch = 0; this.camInit = false; this.under = false;
-    this.fade = 0; this.strokePh = 0; this.waveDone = false; this.comboT = 0; this.lastJump = -9; this.pumpPulse = 0; this.shake = 0; this.omega = 0; this.inTube = false; this.tubeAnn = false; this.stall = false; this.tuck = false; this.airGrab = 0; this.phi = 0;
-    this.popup('Reme! Espaço quando a onda levantar', 4);
+    this.ps = 0; this.lastSide = 0; this.botStrokeT = 0; this.omegaS = 0; this.fade = 0; this.strokePh = 0; this.waveDone = false; this.comboT = 0; this.lastJump = -9; this.pumpPulse = 0; this.shake = 0; this.omega = 0; this.inTube = false; this.tubeAnn = false; this.stall = false; this.tuck = false; this.airGrab = 0; this.phi = 0;
+    this.popup(this.isTouch ? 'Toque nos lados da tela para remar' : 'Alterne A e D para remar', 4);
   }
 
   popup(text, sec = 1.6, big = false) { this.hud.popup(text, sec, big); }
 
   takeoff() {
     this.mode = 'takeoff'; this.tk = 0; this.tkA0 = this.a;
+    this.tkSpeed = 3.4 + this.ps * 0.8;
+    const perfect = this.ps >= 5 && this.a > -2.5 && this.a < 2.5;
+    if (perfect) { this.waveScore += 250; this.popup('TAKEOFF PERFEITO +250', 1.6); }
+    else if (this.ps < 1.5) this.popup('Remada fraca — vai ter que correr!', 1.8);
     this.audio.burst('pop');
     this.hud.hint('');
   }
@@ -106,8 +110,7 @@ export class Game {
     this.wipeRot = new THREE.Vector3((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
     this.wipeQ = this.camera.quaternion.clone();
     this.audio.burst('splash');
-    this.waveScore = Math.floor(this.waveScore);
-    this.score += this.waveScore;
+    this.score += Math.floor(this.waveScore); this.waveScore = 0;
     this.best = Math.max(this.best, this.score);
     this.popup(msg, 2.6, true);
     this.hud.combo('');
@@ -117,7 +120,7 @@ export class Game {
   endRide(msg) {
     if (this.mode === 'end') return;
     this.mode = 'end'; this.et = 0;
-    this.score += Math.floor(this.waveScore); this.best = Math.max(this.best, this.score);
+    this.score += Math.floor(this.waveScore); this.waveScore = 0; this.best = Math.max(this.best, this.score);
     this.popup(msg, 3.0, true);
   }
 
@@ -130,15 +133,23 @@ export class Game {
     this.audio.burst('trick');
   }
 
+  stroke(side) {
+    if (this.mode !== 'paddle') return;
+    if (side !== this.lastSide) { this.ps = Math.min(9, this.ps + 1.05 * (1 - this.ps / 11)); this.strokePh += Math.PI; this.audio.burst('pop'); this.buzz(6); }
+    else this.ps = Math.max(0, this.ps - 0.25);
+    this.lastSide = side;
+  }
+  buzz(ms) { try { if (this.isTouch && navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
+
   // ---------- entrada ----------
   keyDown(code) {
     const i = this.input;
-    if (code === 'KeyA' || code === 'ArrowLeft') i.left = true;
-    else if (code === 'KeyD' || code === 'ArrowRight') i.right = true;
+    if (code === 'KeyA' || code === 'ArrowLeft') { i.left = true; this.stroke(-1); }
+    else if (code === 'KeyD' || code === 'ArrowRight') { i.right = true; this.stroke(1); }
     else if (code === 'KeyS' || code === 'ArrowDown' || code === 'ControlLeft') i.stall = true;
     else if (code === 'ShiftLeft' || code === 'ShiftRight') i.tuck = true;
     else if (code === 'KeyQ' || code === 'KeyE') i.grab = true;
-    else if (code === 'Space') { if (!i.jump) i.pump = true; i.jump = true; i.jumpPressed = true; }
+    else if (code === 'Space') { if (!i.jump) i.jumpPressed = true; i.jump = true; }
     else if (code === 'KeyW' || code === 'ArrowUp') { i.pump = true; }
     else if (code === 'AltLeft') i.free = true;
     else if (code === 'KeyB') { this.bot = !this.bot; this.popup(this.bot ? 'Piloto automático (modo cinema)' : 'Controle manual', 1.8); }
@@ -160,30 +171,33 @@ export class Game {
   // ---------- piloto automático ----------
   botInput(S) {
     const b = { steer: 0, stall: false, tuck: false, pump: false };
-    if (this.mode === 'paddle') { if (this.a > -1.5) b.jump = true; return b; }
+    if (this.mode === 'paddle') { if (this.a > -1.5 && this.ps > 3.5) b.jump = true; return b; }
     if (this.mode !== 'ride') return b;
     const zt = 15 + 4 * Math.sin(this.t * 0.37);
-    const phiT = rad(34) + 0.35 * Math.sin(this.t * 0.8) + 0.25 * Math.sin(this.t * 0.31);
+    const phiT = rad(40) + 0.3 * Math.sin(this.t * 0.8) + 0.2 * Math.sin(this.t * 0.31);
     const phi = this.a > 0 ? this.a / S.Rf : 0;
     let thD = clamp((phiT - phi) * 2.2, -0.9, 0.9);
     // ficar no ponto: ajustar velocidade
     if (S.zeta < zt - 5) { b.stall = true; }
     if (S.zeta > zt + 8) { b.tuck = true; thD += 0.05; if (this.t - this.lastPump > 0.6) b.pump = true; }
-    b.steer = clamp((thD - this.theta) * 3.0, -1, 1);
+    b.steer = clamp((thD - this.theta) * 2.2 - 0.4 * this.omegaS, -1, 1);
     return b;
   }
 
   // ---------- atualização ----------
   update(dt) {
     if (this.paused) return;
-    dt = Math.min(dt, 1 / 20);
+    dt = Math.min(dt, 1 / 20); this.dt = dt;
     this.t += dt;
     const inp = this.input;
     const bi = this.bot ? this.botInput(this.S) : null;
+    if (this.bot && this.mode === 'paddle') { this.botStrokeT -= dt; if (this.botStrokeT <= 0) { this.stroke(this.lastSide >= 0 ? -1 : 1); this.botStrokeT = 0.2; } }
+    let jp = inp.jumpPressed; inp.jumpPressed = false;
+    if (bi && bi.jump) jp = true;
     let steer = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
     let stall = inp.stall, tuck = inp.tuck, pump = inp.pump, jump = inp.jump;
     if (inp.axis) steer = clamp(steer + inp.axis, -1, 1);
-    if (bi) { steer = bi.steer; stall = bi.stall; tuck = bi.tuck; if (bi.pump) pump = true; if (bi.jump) pump = true; }
+    if (bi) { steer = bi.steer; stall = bi.stall; tuck = bi.tuck; if (bi.pump) pump = true; }
     let mdx = inp.free ? 0 : this.mouseDX; this.mouseDX = 0;
     if (this.mousePos !== undefined && !this.locked) { const m = this.mousePos - 0.5; if (Math.abs(m) > 0.06) mdx += Math.sign(m) * (Math.abs(m) - 0.06) * 260 * dt * 3.2; }
     const mdy = this.mouseDY; this.mouseDY = 0;
@@ -195,7 +209,7 @@ export class Game {
     sliceParams(this.z, this.zp, this.env, this.S);
     const S = this.S;
     if (this.mode === 'menu') { this.updateMenu(dt); }
-    else if (this.mode === 'paddle') this.updatePaddle(dt, pump);
+    else if (this.mode === 'paddle') this.updatePaddle(dt, jp);
     else if (this.mode === 'takeoff') this.updateTakeoff(dt, steer);
     else if (this.mode === 'ride') this.updateRide(dt, steer, mdx, stall, tuck, pump, jump);
     else if (this.mode === 'air') this.updateAir(dt, steer, mdx, jump);
@@ -216,15 +230,16 @@ export class Game {
     this.bot = true; this.mode = 'paddle';
   }
 
-  updatePaddle(dt, pump) {
+  updatePaddle(dt, jp) {
     this.pt += dt;
-    this.a += 6.0 * dt;
-    this.strokePh += dt * 5.5;
+    this.a += 5.6 * dt;
+    this.ps = Math.max(0, this.ps - 0.75 * dt);
+    this.strokePh += dt * (1.0 + this.ps * 0.5);
     this.prone = 1; this.crouch = 0;
     this.theta = -Math.PI / 2;
-    this.speed = 0;
-    this.hud.hint(this.a > -6 ? 'ESPAÇO — levantar!' : '');
-    if (pump && this.a > -6) this.takeoff();
+    this.speed = this.ps * 0.5;
+    this.hud.hint(this.a > -5 ? 'ESPAÇO — levantar!' : '');
+    if (jp && this.a > -5) this.takeoff();
     else if (this.a > 4.5) this.takeoff();
   }
 
@@ -236,9 +251,9 @@ export class Game {
     this.theta = lerp(-Math.PI / 2, -1.2, e);
     this.prone = 1 - smoothstep(0.0, 0.6, k);
     this.crouch = Math.min(1, smoothstep(0.1, 0.5, k) * 0.95);
-    this.speed = lerp(1, 6.0, e);
+    this.speed = lerp(1.5, this.tkSpeed, e);
     this.strokePh += dt * 6;
-    if (k >= 1) { this.mode = 'ride'; this.rideT = 0; this.prone = 0; this.speed = 6.0; this.z += 0; this.popup('Desce a parede!', 1.2); }
+    if (k >= 1) { this.mode = 'ride'; this.rideT = 0; this.prone = 0; this.speed = this.tkSpeed; this.hintT = 0; this.popup('Faz a curva embaixo e sobe a parede!', 1.8); }
   }
 
   updateRide(dt, steer, mdx, stall, tuck, pump, jump) {
@@ -250,8 +265,9 @@ export class Game {
     sp += -G * sinB * Math.sin(th) * dt;
     th += (-G * sinB * Math.cos(th) / Math.max(sp, 5)) * dt * 0.32;
     // direção
-    const speedF = 0.7 + 0.3 * clamp(sp / 12, 0, 1);
-    const dTh = steer * 2.1 * speedF * dt + mdx * 0.0042;
+    const maxW = clamp(2.6 - 0.05 * sp, 1.5, 2.4) * (this.crouch > 0.5 ? 1.08 : 1);
+    this.omegaS += (steer * maxW - this.omegaS) * (1 - Math.exp(-dt * 8.5));
+    const dTh = this.omegaS * dt + mdx * 0.0042;
     th += dTh;
     this.omega = dTh / dt;
     // assistência na primeira curva (bottom turn)
@@ -263,22 +279,25 @@ export class Game {
     }
     th = clamp(th, -2.6, 2.6);
     // empuxo da onda (bolso)
-    const zc = 12, hw = 22;
-    const x = (S.zeta - zc) / hw;
-    const pocket = Math.abs(x) < 1 ? 0.5 * (1 + Math.cos(Math.PI * x)) : 0;
+    const rise = smoothstep(-10, 5, S.zeta), fall = 1 - 0.65 * smoothstep(S.c0 - 12, S.c0 + 8, S.zeta);
+    const pocket = rise * fall;
     const faceF = smoothstep(-3.0, 0.6, this.a);
-    const T0 = 6.6 * pocket * faceF * (tuck ? 1.15 : 1) * (S.H / 4.6 > 1.3 ? 1.1 : 1);
+    const T0 = 6.8 * pocket * faceF * (tuck ? 1.15 : 1) * (S.H / 4.6 > 1.3 ? 1.1 : 1);
     sp += T0 * dt;
-    const drag = 0.12 * sp + 0.032 * sp * sp * (tuck ? 0.78 : 1) * (stall ? 2.6 : 1);
+    const phiNow = this.a > 0 ? this.a / S.Rf : 0;
+    if (sp < 16) sp += 1.15 * Math.abs(this.omegaS) * (1 - smoothstep(0.35, 1.1, phiNow)) * (0.6 + 0.6 * this.crouch) * dt;
+    const drag = 0.12 * sp + 0.032 * sp * sp * (tuck ? 0.78 : 1) * (stall ? 2.0 : 1);
     sp -= drag * dt;
-    if (stall) sp -= 2.2 * dt;
-    if (pump && this.t - this.lastPump > 0.45 && sp < 17) { sp += 1.8; this.lastPump = this.t; this.pumpPulse = 1; this.audio.burst('pop'); }
+    if (stall) sp -= 1.6 * dt;
+    if (pump && this.t - this.lastPump > 0.45 && sp < 17) { sp += 1.8; this.lastPump = this.t; this.pumpPulse = 1; this.audio.burst('pop'); this.buzz(8); }
     sp = clamp(sp, 0.3, 21);
     // integra
     this.z += sp * Math.cos(th) * dt;
     this.a += sp * Math.sin(th) * dt;
     this.theta = th; this.speed = sp;
     this.stall = stall; this.tuck = tuck;
+    this.hintT = (this.hintT || 0) + dt;
+    this.hud.hint(this.hintT < 7 ? (this.isTouch ? 'JOYSTICK carva · BOMBEAR dá velocidade · SEGURAR no tubo' : 'A/D ou mouse carva · W bombeia · S segura o tubo · Shift agacha') : '');
     const Sn = sliceParams(this.z, this.zp, env, this.S);
     // faixa de mergulho de fase
     const phi = this.a > 0 ? this.a / Sn.Rf : 0;
@@ -308,8 +327,9 @@ export class Game {
     const aLip = Math.min(Sn.aMax - 0.25, Sn.Rf * rad(98));
     if (this.a > aLip) {
       if (Sn.phi > rad(100) || Sn.k > 0.3) {
-        if (Math.sin(th) > 0.12 && sp > 6.5) { this.launch(jump); return; }
-        this.a = aLip - 0.1; this.theta = Math.min(th, -0.2);
+        if (Sn.k < 0.5 && Math.sin(th) > 0.12 && sp > 6.5) { this.launch(jump); return; }
+        // no tubo o teto de água te devolve para a parede
+        this.a = aLip - 0.15; this.theta = Math.min(th, -0.35); this.speed = sp * 0.93; this.shake = Math.max(this.shake, 0.25);
       } else {
         if (sp > 5) { this.endRide('KICKOUT!'); this.waveScore += 200; return; }
         this.a = aLip - 0.1; this.theta = Math.min(th, -0.2);
@@ -362,7 +382,7 @@ export class Game {
       const airPts = Math.round(this.airT * 380 + half * 420 + (this.airGrab ? 160 : 0) + Math.max(0, this.airMaxY - 2) * 90);
       const label = half >= 2 ? `${half * 180}°` : half === 1 ? 'REVERT' : 'AÉREO';
       this.award(airPts, label + (this.airGrab ? ' + GRAB' : ''));
-      this.audio.burst('land');
+      this.audio.burst('land'); this.buzz(18);
       // volta à onda
       this.a = la; const tz = this.vel.z, ta = this.vel.x * P.tx + this.vel.y * P.ty;
       this.speed = Math.hypot(tz, ta) * 0.92; this.theta = Math.atan2(ta, tz);
@@ -396,7 +416,7 @@ export class Game {
   }
 
   // ---------- câmera ----------
-  boardFrame(out) {
+  boardFrame(out, dt = 1 / 60) {
     const S = this.S;
     if (this.mode === 'air') {
       const hv = Math.hypot(this.vel.x, this.vel.z);
@@ -415,8 +435,8 @@ export class Game {
     const U = new THREE.Vector3(P.nx, P.ny, 0);
     let R = new THREE.Vector3().crossVectors(F, U).normalize();
     // inclinação lateral ao carvar
-    const targetBank = clamp(-(this.omega || 0) * 0.05, -0.16, 0.16);
-    this.bank += (targetBank - this.bank) * 0.12;
+    const targetBank = clamp(-(this.omegaS || 0) * 0.075, -0.2, 0.2);
+    this.bank += (targetBank - this.bank) * (1 - Math.exp(-dt * 8));
     const b = this.bank;
     const U2 = U.clone().multiplyScalar(Math.cos(b)).addScaledVector(R, Math.sin(b));
     const R2 = R.clone().multiplyScalar(Math.cos(b)).addScaledVector(U, -Math.sin(b));
@@ -443,7 +463,7 @@ export class Game {
       this.fovTarget(86);
       return;
     }
-    this.boardFrame(frame);
+    this.boardFrame(frame, dt);
     const { pos, F, R, U } = frame;
     // postura
     let crouchT = 0.15;
@@ -477,7 +497,7 @@ export class Game {
     this.lookYaw += (0 - this.lookYaw) * rec;
     this.lookPitch += (0 - this.lookPitch) * (1 - Math.exp(-dt * 0.9));
     // olhar para a parede ao carvar para cima
-    const carveLook = this.mode === 'ride' ? clamp(Math.sin(this.theta), -1, 1) * -0.08 : 0;
+    const carveLook = this.mode === 'ride' ? clamp(Math.sin(this.theta), -1, 1) * -0.08 + clamp(this.omegaS * 0.05, -0.12, 0.12) : 0;
     // pronação: olhar um pouco para baixo na remada
     // câmera: o corpo se inclina para compensar a inclinação da parede — a cabeça fica mais "em pé"
     const blend = this.mode === 'air' ? 0.35 : (this.prone > 0.5 ? 0.15 : 0.6);
@@ -513,7 +533,7 @@ export class Game {
   }
 
   fovTarget(f) {
-    const c = this.camera; c.fov += (f - c.fov) * 0.08; c.updateProjectionMatrix();
+    const c = this.camera; c.fov += (f - c.fov) * (1 - Math.exp(-(this.dt || 0.016) * 5)); c.updateProjectionMatrix();
   }
 
   // ---------- efeitos ----------
@@ -524,14 +544,14 @@ export class Game {
     // spray da prancha
     if (f && (riding || this.mode === 'paddle')) {
       const tail = f.pos.clone().addScaledVector(f.F, -0.85).addScaledVector(f.U, 0.06);
-      const amount = riding ? sp * dt * 60 * (0.4 + Math.min(1, Math.abs(this.omega || 0) * 0.35)) : (this.mode === 'paddle' ? 2 : 0);
+      const amount = riding ? sp * dt * 85 * (0.45 + Math.min(1, Math.abs(this.omegaS || 0) * 0.45)) : (this.mode === 'paddle' ? 2 : 0);
       let n = Math.floor(amount + Math.random());
       while (n-- > 0) {
         const sideSign = Math.random() < 0.5 ? -1 : 1;
         const s = 0.5 + Math.random();
         this.spray.emit(tail.x + (Math.random() - 0.5) * 0.3, tail.y, tail.z + (Math.random() - 0.5) * 0.3,
           -f.F.x * sp * 0.3 + f.R.x * sideSign * (1.5 + Math.random() * 3) + f.U.x * 3, -f.F.y * sp * 0.3 + f.U.y * (2 + Math.random() * 4), -f.F.z * sp * 0.3 + f.R.z * sideSign * 2 + f.U.z * 3,
-          0.7 + Math.random() * 0.6, 0.18 * s, 1.5);
+          0.8 + Math.random() * 0.7, 0.32 * s, 1.8);
       }
       // trilha de espuma
       if (riding && sp > 3 && this.trailAcc !== undefined) {

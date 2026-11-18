@@ -77,4 +77,6 @@ document.querySelectorAll('#tbtns button').forEach((b) => {
   const up = () => { b.classList.remove('on'); game.keyUp(k); };
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
 });
+canvas.addEventListener('pointerdown', (e) => { if (game.isTouch && game.mode === 'paddle') game.stroke(e.clientX < window.innerWidth / 2 ? -1 : 1); });
+document.addEventListener('visibilitychange', () => { if (playing && game.isTouch) { game.paused = document.hidden; } });
 document.addEventListener('contextmenu', (e) => e.preventDefault());

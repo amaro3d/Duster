@@ -3,7 +3,7 @@ import { ENVS } from './envs.js';
 export class Hud {
   constructor() {
     const $ = (id) => document.getElementById(id);
-    this.el = { speed: $('speed'), score: $('score'), best: $('best'), popup: $('popup'), hint: $('hint'), combo: $('combo'), bar: $('progress-fill'), tube: $('tube'), fade: $('fade'), envname: $('envname'), mode: $('modeb'), hud: $('hud') };
+    this.el = { speed: $('speed'), score: $('score'), best: $('best'), popup: $('popup'), hint: $('hint'), combo: $('combo'), bar: $('progress-fill'), tube: $('tube'), pocket: $('pocket'), pk: $('pk'), pbar: $('paddlebar'), pfill: $('paddlefill'), vig: $('vig'), fade: $('fade'), envname: $('envname'), mode: $('modeb'), hud: $('hud') };
     this.pt = 0; this.lastText = '';
   }
   popup(text, sec = 1.6, big = false) {
@@ -26,6 +26,18 @@ export class Hud {
     e.combo.textContent = g.combo > 1 ? `COMBO ×${(1 + Math.min(g.combo, 8) * 0.25).toFixed(2)}` : '';
     e.fade.style.opacity = g.fade || 0;
     e.mode.textContent = g.bot ? 'MODO CINEMA' : '';
+    const ride = g.mode === 'ride';
+    e.pocket.style.opacity = ride ? 1 : 0;
+    if (ride) {
+      const lo = -14, hi = g.S.c0 + 22, f = (z) => Math.min(1, Math.max(0, (z - lo) / (hi - lo)));
+      e.pk.style.top = (f(g.S.zeta) * 100).toFixed(1) + '%';
+      e.pocket.style.setProperty('--z0', (f(3) * 100).toFixed(1) + '%');
+      e.pocket.style.setProperty('--z1', (f(g.S.c0 - 6) * 100).toFixed(1) + '%');
+      e.pocket.style.setProperty('--zc', (f(g.S.c0) * 100).toFixed(1) + '%');
+    }
+    const pad = g.mode === 'paddle' && !g.bot;
+    e.pbar.style.opacity = pad ? 1 : 0; e.pfill.style.width = (Math.min(1, g.ps / 6) * 100).toFixed(0) + '%';
+    e.vig.style.opacity = Math.min(0.75, Math.max(0, ((g.speed || 0) - 7) / 13)).toFixed(2);
   }
 }
 

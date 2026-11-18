@@ -94,7 +94,7 @@ export class Rig {
       const sR = (Math.sin(ph) * 0.5 + 0.5), sL = (Math.sin(ph + Math.PI) * 0.5 + 0.5);
       const strokeHand = (s, side) => new THREE.Vector3(side * 0.34, 0.16 - 0.2 * Math.max(0, Math.sin(ph + (side > 0 ? 0 : Math.PI)) * -1), -0.95 + 0.75 * s);
       handR = strokeHand(sR, 1); handL = strokeHand(sL, -1);
-      shR.set(0.2, 0.3, -0.25); shL.set(-0.2, 0.3, -0.25);
+      shR.set(0.22, 0.26, 0.2); shL.set(-0.22, 0.26, 0.2);
     } else {
       // parede à direita: estende a mão para a água
       const wall = p.wall;

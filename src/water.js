@@ -105,13 +105,15 @@ void main(){
       float fy = floorY(vWPos.xz + uFlow, uBeachX);
       float depth = max(-fy, 0.);
       alpha = clamp(0.55 + 0.45*(1.-exp(-depth*0.9)), 0., 1.);
-      col = mix(uShallow*1.15, col, clamp(0.55+0.45*(1.-exp(-depth*0.6)),0.,1.));
+      float seaW = (uIsSea>0.5) ? 1. : smoothstep(2., 16., vWPos.x);
+      vec3 sc = mix(uShallow*1.15, col, clamp(0.55+0.45*(1.-exp(-depth*0.6)),0.,1.));
+      col = mix(col, sc, seaW);
     }
     // espuma
     vec2 fp = vWPos.xz*0.9 + uFlow*0.5;
     float fn = fbm(fp*1.3 + vec2(uTime*0.12,0.))*0.65 + fbm(fp*4.1 - uTime*0.2)*0.35;
     float tipv = max(vTip, 0.);
-    float foamIn = vFoam*1.25 + tipv*0.5;
+    float foamIn = vFoam*1.25 + tipv*0.8;
     float fm = smoothstep(0.52, 0.72, foamIn + fn*0.7 - 0.28);
     // espuma de borda de rasos
     if(uIsSea>0.5){

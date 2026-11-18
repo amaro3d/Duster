@@ -14,6 +14,7 @@ Abra `dist/index.html`. Clique em **Entrar no mar**.
 | Tecla | Ação |
 |---|---|
 | Mouse ou A / D | Carvar (direita = subir a parede) |
+| A / D alternados | Remar (mais braçadas = takeoff mais rápido) |
 | Espaço | Levantar na remada · pulo/aéreo na parede |
 | W | Bombear (ganha velocidade) |
 | S | Arrastar a mão e segurar o tubo |
@@ -28,3 +29,6 @@ O ponto de quebra (peel) corre ao longo da crista; o surfista precisa acompanhá
 
 ## Ambientes
 Ilha Verde · Hora Dourada · Tempestade · Orla Urbana · Noite Lunar (`src/envs.js`).
+
+## Fluidez
+Carve com inércia, ganho de velocidade em curvas fundas, medidor de bolso (BOLSO) e empuxo da onda que mantém você no ponto de quebra; S segura o tubo.
