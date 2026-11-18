@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ONDA — surf em primeira pessoa</title>
+<style>
+:root{--ink:#f4fbff;--soft:rgba(244,251,255,.72);--acc:#7ff0d2;--bg:#04121c}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#04121c;color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden;-webkit-user-select:none;user-select:none}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+#hud{position:fixed;inset:0;pointer-events:none;text-shadow:0 1px 8px rgba(0,20,40,.55)}
+.corner{position:absolute;font-variant-numeric:tabular-nums}
+#tl{top:18px;left:22px}
+#tr{top:18px;right:22px;text-align:right}
+.lbl{font-size:10px;letter-spacing:.22em;opacity:.7;text-transform:uppercase}
+#score{font-size:30px;font-weight:600;letter-spacing:.04em}
+#best{font-size:13px;opacity:.7}
+#speed{font-size:46px;font-weight:300;letter-spacing:-.02em}
+.unit{font-size:12px;opacity:.7;margin-left:4px;letter-spacing:.12em}
+#envname{font-family:Georgia,"Times New Roman",serif;font-size:15px;opacity:.85;margin-top:2px}
+#modeb{font-size:11px;letter-spacing:.25em;color:var(--acc);margin-top:6px}
+#progress{position:absolute;left:22px;right:22px;bottom:18px;height:3px;background:rgba(255,255,255,.18);border-radius:2px;overflow:hidden}
+#progress-fill{height:100%;width:0;background:var(--acc)}
+#popup{position:absolute;left:50%;top:22%;transform:translate(-50%,-8px);font-size:20px;font-weight:600;letter-spacing:.1em;opacity:0;transition:opacity .25s,transform .25s;text-align:center;white-space:nowrap}
+#popup.show{opacity:1;transform:translate(-50%,0)}
+#popup.big{font-size:38px;letter-spacing:.14em;color:#fff}
+#hint{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);font-size:14px;letter-spacing:.18em;opacity:0;transition:opacity .2s;text-transform:uppercase}
+#combo{position:absolute;left:22px;top:84px;font-size:14px;color:var(--acc);letter-spacing:.16em}
+#tube{position:absolute;left:50%;top:14%;transform:translateX(-50%);font-size:16px;letter-spacing:.3em;color:var(--acc);opacity:0;transition:opacity .3s}
+#fade{position:fixed;inset:0;background:#02080f;opacity:0;pointer-events:none}
+#menu{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:radial-gradient(ellipse at 50% 70%,rgba(4,20,32,.25),rgba(2,10,18,.78));z-index:5;padding:20px;text-align:center}
+#menu.hide{display:none}
+h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(54px,11vw,128px);letter-spacing:.12em;line-height:1;text-shadow:0 4px 40px rgba(0,30,60,.6)}
+.tag{font-size:12px;letter-spacing:.42em;text-transform:uppercase;opacity:.85;margin-top:-6px}
+#cards{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:980px}
+.card{all:unset;cursor:pointer;width:170px;border-radius:14px;padding:8px 8px 12px;background:rgba(255,255,255,.07);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);transition:transform .15s,background .15s,border-color .15s;text-align:left}
+.card:hover{transform:translateY(-3px);background:rgba(255,255,255,.12)}
+.card.on{border-color:var(--acc);background:rgba(127,240,210,.12)}
+.card .sw{display:block;height:64px;border-radius:9px;margin-bottom:9px}
+.card b{display:block;font-size:14px;font-weight:600;margin:0 4px}
+.card i{display:block;font-size:11px;font-style:normal;opacity:.72;margin:3px 4px 0}
+#play{all:unset;cursor:pointer;background:var(--acc);color:#032a2a;font-weight:700;letter-spacing:.2em;text-transform:uppercase;padding:15px 38px;border-radius:40px;font-size:14px;transition:transform .15s,box-shadow .15s;box-shadow:0 8px 30px rgba(127,240,210,.35)}
+#play:hover{transform:scale(1.04)}
+.keys{display:flex;gap:18px 28px;flex-wrap:wrap;justify-content:center;font-size:12px;opacity:.85;max-width:900px;line-height:1.8}
+.keys kbd{display:inline-block;min-width:22px;padding:1px 7px;margin:0 2px;border:1px solid rgba(255,255,255,.4);border-bottom-width:2px;border-radius:5px;font:600 11px ui-monospace,monospace}
+#pause{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:4;background:rgba(2,10,18,.5);font-size:14px;letter-spacing:.3em;text-transform:uppercase;cursor:pointer}
+#pause.on{display:flex}
+@media (max-width:720px){#speed{font-size:34px}#score{font-size:22px}.card{width:46%}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div class="corner" id="tl"><div class="lbl">Pontos</div><div id="score">000000</div><div id="best">000000</div><div id="envname"></div><div id="modeb"></div></div>
+  <div class="corner" id="tr"><div class="lbl">Velocidade</div><div><span id="speed">0</span><span class="unit">KM/H</span></div></div>
+  <div id="combo"></div><div id="tube"></div><div id="popup"></div><div id="hint"></div>
+  <div id="progress"><div id="progress-fill"></div></div>
+</div>
+<div id="fade"></div>
+<div id="pause">Clique para continuar</div>
+<div id="menu">
+  <h1>ONDA</h1>
+  <div class="tag">surf em primeira pessoa</div>
+  <div id="cards"></div>
+  <button id="play">Entrar no mar</button>
+  <div class="keys">
+    <span><kbd>Mouse</kbd> ou <kbd>A</kbd><kbd>D</kbd> carvar (direita = subir a parede)</span>
+    <span><kbd>Espaço</kbd> levantar / pulo no lábio</span>
+    <span><kbd>W</kbd> bombear velocidade</span>
+    <span><kbd>S</kbd> arrastar a mão e segurar o tubo</span>
+    <span><kbd>Shift</kbd> agachar (joelhos) · <kbd>Q</kbd> pegar a borda no ar</span>
+    <span><kbd>A</kbd><kbd>D</kbd> no ar: girar · <kbd>Alt</kbd>+mouse: olhar em volta</span>
+    <span><kbd>N</kbd> próximo mar · <kbd>R</kbd> nova onda · <kbd>B</kbd> modo cinema</span>
+  </div>
+</div>
+<!--BUNDLE-->
+</body>
+</html>
