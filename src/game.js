@@ -162,7 +162,7 @@ export class Game {
     const b = { steer: 0, stall: false, tuck: false, pump: false };
     if (this.mode === 'paddle') { if (this.a > -1.5) b.jump = true; return b; }
     if (this.mode !== 'ride') return b;
-    const zt = 22 + 6 * Math.sin(this.t * 0.37);
+    const zt = 15 + 4 * Math.sin(this.t * 0.37);
     const phiT = rad(34) + 0.35 * Math.sin(this.t * 0.8) + 0.25 * Math.sin(this.t * 0.31);
     const phi = this.a > 0 ? this.a / S.Rf : 0;
     let thD = clamp((phiT - phi) * 2.2, -0.9, 0.9);
@@ -263,7 +263,7 @@ export class Game {
     }
     th = clamp(th, -2.6, 2.6);
     // empuxo da onda (bolso)
-    const zc = 15, hw = 28;
+    const zc = 12, hw = 22;
     const x = (S.zeta - zc) / hw;
     const pocket = Math.abs(x) < 1 ? 0.5 * (1 + Math.cos(Math.PI * x)) : 0;
     const faceF = smoothstep(-3.0, 0.6, this.a);

@@ -22361,9 +22361,9 @@ void main() {
       H: 4.6,
       rf: 0.4,
       cp: 11.5,
-      pitchLen: 26,
-      tubeMin: 24,
-      tubeMax: 50,
+      pitchLen: 18,
+      tubeMin: 10,
+      tubeMax: 20,
       zEnd: 950,
       sunDir: [0.42, 0.5, 0.76],
       sunColor: "#fff0d4",
@@ -22390,9 +22390,9 @@ void main() {
       H: 4.8,
       rf: 0.4,
       cp: 11.8,
-      pitchLen: 26,
-      tubeMin: 26,
-      tubeMax: 52,
+      pitchLen: 18,
+      tubeMin: 10,
+      tubeMax: 20,
       zEnd: 950,
       sunDir: [0.3, 0.17, 0.94],
       sunColor: "#ffb870",
@@ -22419,9 +22419,9 @@ void main() {
       H: 7.4,
       rf: 0.4,
       cp: 13.5,
-      pitchLen: 32,
-      tubeMin: 28,
-      tubeMax: 60,
+      pitchLen: 18,
+      tubeMin: 10,
+      tubeMax: 20,
       zEnd: 900,
       sunDir: [0.35, 0.32, 0.88],
       sunColor: "#e8eef4",
@@ -22448,9 +22448,9 @@ void main() {
       H: 4.2,
       rf: 0.4,
       cp: 11,
-      pitchLen: 24,
-      tubeMin: 22,
-      tubeMax: 44,
+      pitchLen: 18,
+      tubeMin: 10,
+      tubeMax: 20,
       zEnd: 950,
       sunDir: [0.3, 0.62, 0.72],
       sunColor: "#fff6e6",
@@ -22477,9 +22477,9 @@ void main() {
       H: 4.6,
       rf: 0.4,
       cp: 11.5,
-      pitchLen: 26,
-      tubeMin: 24,
-      tubeMax: 50,
+      pitchLen: 18,
+      tubeMin: 10,
+      tubeMax: 20,
       zEnd: 950,
       sunDir: [0.3, 0.42, 0.86],
       sunColor: "#a9c6ff",
@@ -22980,7 +22980,8 @@ void main(){
     // bioluminesc\xEAncia
     col += uNight*uSSS*0.9*smoothstep(0.35,0.9,vFoam+max(vTip,0.)*0.5)*0.55;
     // profundidade / rasos (mar aberto)
-    if(uIsSea>0.5){
+    bool seaLike = (uIsSea>0.5) || (vTip < -0.5);
+    if(seaLike){
       float fy = floorY(vWPos.xz + uFlow, uBeachX);
       float depth = max(-fy, 0.);
       alpha = clamp(0.55 + 0.45*(1.-exp(-depth*0.9)), 0., 1.);
@@ -23004,7 +23005,7 @@ void main(){
     if(uIsSea<0.5){
       // trecho plano (x>0): funde com o mar que fica por baixo
       float isFlat = step(vTip, -0.5);
-      float far = smoothstep(6., 28., vWPos.x) * isFlat;
+      float far = smoothstep(3., 18., vWPos.x) * isFlat;
       alpha = mix(alpha, fm*0.92, far);
     }
   }
@@ -24111,7 +24112,7 @@ void main(){
         return b;
       }
       if (this.mode !== "ride") return b;
-      const zt = 22 + 6 * Math.sin(this.t * 0.37);
+      const zt = 15 + 4 * Math.sin(this.t * 0.37);
       const phiT = rad(34) + 0.35 * Math.sin(this.t * 0.8) + 0.25 * Math.sin(this.t * 0.31);
       const phi = this.a > 0 ? this.a / S.Rf : 0;
       let thD = clamp2((phiT - phi) * 2.2, -0.9, 0.9);
@@ -24230,7 +24231,7 @@ void main(){
         th += (tgt - th) * (this.a < 0.5 ? 1.6 : 0.5) * dt;
       }
       th = clamp2(th, -2.6, 2.6);
-      const zc = 15, hw = 28;
+      const zc = 12, hw = 22;
       const x = (S.zeta - zc) / hw;
       const pocket = Math.abs(x) < 1 ? 0.5 * (1 + Math.cos(Math.PI * x)) : 0;
       const faceF = smoothstep(-3, 0.6, this.a);

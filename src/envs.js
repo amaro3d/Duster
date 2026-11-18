@@ -2,7 +2,7 @@
 export const ENVS = [
   {
     id: 'ilha', name: 'Ilha Verde', sub: 'Recife turquesa, manhã limpa',
-    H: 4.6, rf: 0.40, cp: 11.5, pitchLen: 26, tubeMin: 24, tubeMax: 50, zEnd: 950,
+    H: 4.6, rf: 0.40, cp: 11.5, pitchLen: 18, tubeMin: 10, tubeMax: 20, zEnd: 950,
     sunDir: [0.42, 0.50, 0.76], sunColor: '#fff0d4', sunI: 1.15,
     skyTop: '#2a78d4', skyMid: '#86c6f0', skyHor: '#d9eff2', cloud: 0.55, stars: 0,
     deep: '#052f4d', shallow: '#17b5b0', sss: '#5af0c0', foam: '#f4fbff',
@@ -11,7 +11,7 @@ export const ENVS = [
   },
   {
     id: 'dourada', name: 'Hora Dourada', sub: 'Sol baixo atravessando o tubo',
-    H: 4.8, rf: 0.40, cp: 11.8, pitchLen: 26, tubeMin: 26, tubeMax: 52, zEnd: 950,
+    H: 4.8, rf: 0.40, cp: 11.8, pitchLen: 18, tubeMin: 10, tubeMax: 20, zEnd: 950,
     sunDir: [0.30, 0.17, 0.94], sunColor: '#ffb870', sunI: 1.6,
     skyTop: '#22457a', skyMid: '#d98a5e', skyHor: '#ffcf9a', cloud: 0.6, stars: 0,
     deep: '#06283a', shallow: '#2cb090', sss: '#b9f27a', foam: '#fff3e0',
@@ -20,7 +20,7 @@ export const ENVS = [
   },
   {
     id: 'gigante', name: 'Tempestade', sub: 'Mar grosso, céu fechado',
-    H: 7.4, rf: 0.40, cp: 13.5, pitchLen: 32, tubeMin: 28, tubeMax: 60, zEnd: 900,
+    H: 7.4, rf: 0.40, cp: 13.5, pitchLen: 18, tubeMin: 10, tubeMax: 20, zEnd: 900,
     sunDir: [0.35, 0.32, 0.88], sunColor: '#e8eef4', sunI: 0.55,
     skyTop: '#2d3947', skyMid: '#5f7080', skyHor: '#a7b5bf', cloud: 1.0, stars: 0,
     deep: '#061b28', shallow: '#2b7886', sss: '#6cc4b0', foam: '#e9f1f5',
@@ -29,7 +29,7 @@ export const ENVS = [
   },
   {
     id: 'urbana', name: 'Orla Urbana', sub: 'Prédios na areia, meio-dia',
-    H: 4.2, rf: 0.40, cp: 11.0, pitchLen: 24, tubeMin: 22, tubeMax: 44, zEnd: 950,
+    H: 4.2, rf: 0.40, cp: 11.0, pitchLen: 18, tubeMin: 10, tubeMax: 20, zEnd: 950,
     sunDir: [0.30, 0.62, 0.72], sunColor: '#fff6e6', sunI: 1.2,
     skyTop: '#3a8fe0', skyMid: '#9fd0f2', skyHor: '#e6f3f5', cloud: 0.4, stars: 0,
     deep: '#0a4260', shallow: '#33c0bd', sss: '#6df2d0', foam: '#f6fcff',
@@ -38,7 +38,7 @@ export const ENVS = [
   },
   {
     id: 'noite', name: 'Noite Lunar', sub: 'Lua cheia, mar bioluminescente',
-    H: 4.6, rf: 0.40, cp: 11.5, pitchLen: 26, tubeMin: 24, tubeMax: 50, zEnd: 950,
+    H: 4.6, rf: 0.40, cp: 11.5, pitchLen: 18, tubeMin: 10, tubeMax: 20, zEnd: 950,
     sunDir: [0.30, 0.42, 0.86], sunColor: '#a9c6ff', sunI: 0.55,
     skyTop: '#030817', skyMid: '#0a1b38', skyHor: '#1c3a60', cloud: 0.25, stars: 1,
     deep: '#020e1a', shallow: '#0b5868', sss: '#38e6ff', foam: '#bfe9ff',

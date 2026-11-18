@@ -100,7 +100,8 @@ void main(){
     // bioluminescência
     col += uNight*uSSS*0.9*smoothstep(0.35,0.9,vFoam+max(vTip,0.)*0.5)*0.55;
     // profundidade / rasos (mar aberto)
-    if(uIsSea>0.5){
+    bool seaLike = (uIsSea>0.5) || (vTip < -0.5);
+    if(seaLike){
       float fy = floorY(vWPos.xz + uFlow, uBeachX);
       float depth = max(-fy, 0.);
       alpha = clamp(0.55 + 0.45*(1.-exp(-depth*0.9)), 0., 1.);
@@ -124,7 +125,7 @@ void main(){
     if(uIsSea<0.5){
       // trecho plano (x>0): funde com o mar que fica por baixo
       float isFlat = step(vTip, -0.5);
-      float far = smoothstep(6., 28., vWPos.x) * isFlat;
+      float far = smoothstep(3., 18., vWPos.x) * isFlat;
       alpha = mix(alpha, fm*0.92, far);
     }
   }
